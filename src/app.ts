@@ -49,12 +49,12 @@
 // export default app;
 
 
-import express, { Request, Response } from "express";
+import express from "express";
 const app = express();
 import indexRouter from './routes/index';
-import {auth, authLocal} from "./middlewares/auth";
+import {auth, authLocal,verifyAdminRoutes} from "./middlewares/auth";
 import {api} from "./utils/env";
-//import assetRouter from "./routes/asset.routes";
+import apiRouter from "./routes/allApi.routes";
 import rateLimit from 'express-rate-limit';
 //import dotenv from "dotenv";
 //import axios from "axios";
@@ -80,20 +80,21 @@ app.use(express.urlencoded({ extended: false }));
 
 
 const limiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minutes
-  max: 2, // limit each IP to 100 requests per windowMs
+  windowMs: 60 * 1000, 
+  max: 100, 
   message: "Too many login attempts from this IP, please try again later.",
 });
 app.use(limiter);
-if(api.nodeEnv !== "local" && api.nodeEnv !== "test") {
-    app.use(auth);
-   // app.use(verifyAdminRoutes);
-} else {
-    app.use(authLocal);
-}
-
 app.use('/', indexRouter);
-//app.use('/assets', assetRouter);
+ if(api.nodeEnv !== "local" && api.nodeEnv !== "test") {
+    app.use(auth);
+     app.use(verifyAdminRoutes);
+ } else {
+     app.use(authLocal);
+ }
+
+
+app.use('/api', apiRouter);
 
 app.all('*', function (req, res) {
     res.status(404).json({

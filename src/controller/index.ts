@@ -1,27 +1,28 @@
 import { Request, Response } from 'express';
 import responseHandler from '../utils/responseHandler';
-
-export const auth = async (req: Request, res: Response): Promise<void> => {
+import { api } from '../utils/env';
+import axios from 'axios';
+console.log("api",api)
+export const auth1 = async (req: Request, res: Response): Promise<void> => {
+    console.log("123")
     try {
-        const response = await axios.post(`https://${auth0Domain}/oauth/token`, {
-          grant_type: 'client_credentials',
-          client_id: process.env.AUTH0_CLIENT_ID,
-          client_secret: process.env.AUTH0_CLIENT_SECRET,
-          audience: process.env.AUTH0_AUDIENCE
+        console.log("1234")
+        const response = await axios.post(`https://${api.auth_domain}/oauth/token`, {
+            grant_type: 'client_credentials',
+            client_id: api.auth_client_id,
+            client_secret: api.auth_client_secret,
+            audience: api.auth_audience,
         }, {
-          headers: {
-            'Content-Type': 'application/json',
-          },
+            headers: {
+                'Content-Type': 'application/json',
+            },
         });
-    
+       console.log(response)
         const { access_token } = response.data;
-        responseHandler.successHandler(access_token, "1", "Welcome", null);
-        res.json({ access_token });
-      } catch (error: any) {
-        
-          
-          res.status(error.response.status).json({ error: error.response.data });
-        
-      }
-    responseHandler.successHandler(res, "1", "Welcome", null);
+        responseHandler.successHandler(res, "1", "Welcome", access_token);
+    } catch (error: any) {
+        const status = error.response?.status || 500;
+        const message = error.response?.data || 'Something went wrong';
+        res.status(status).json({ error: message });
+    }
 };

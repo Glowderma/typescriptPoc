@@ -1,8 +1,8 @@
 import express, { Router } from 'express';
-import { auth } from "../controller/index";
+import { auth1 } from "../controller/index";
 
 const indexRouter: Router = express.Router();
-
-indexRouter.get('/auth', auth);
+console.log("77")
+indexRouter.get('/auth1', auth1);
 
 export default indexRouter;

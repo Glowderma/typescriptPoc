@@ -1,47 +1,71 @@
 import { Request, Response, NextFunction } from "express";
 import responseHandler from "../utils/responseHandler";
+
 import { api } from "../utils/env";
 import jwt from "jsonwebtoken";
 import jwksRsa from "jwks-rsa";
+import axios from "axios";
 
-const adminRoutes = ["/admin"];
+const adminRoutes: string[] = [
+    "/api/csv"
+    
+];
 
-interface AuthenticatedRequest extends Request {
-    decodedToken?: string | object;
-    body: {
-        isAdmin?: boolean;
-    };
-}
+const audUrl: string[] = ["https://clouce.us.auth0.com/userinfo"];
 
-const auth = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+
+
+const auth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const token = req?.headers?.authorization ?? null;
+        const token = req.headers.authorization ?? null;
         if (!token) {
             return responseHandler.unauthorizedErrorHandler(res, "0", "No token received.");
         }
+
         const client = jwksRsa({
             jwksUri: api.jwks
         });
         const key = await client.getSigningKey(api.kid);
         const publicKey = key.getPublicKey();
-        req.decodedToken = jwt.verify(token.split(' ')[1], publicKey);
+
+        req = jwt.verify(token.split(' ')[1], publicKey) as any;
         next();
     } catch (error) {
-        console.log("token verification error: ", error);
+        console.error("Token verification error:", error);
         return responseHandler.unauthorizedErrorHandler(res, "0", "Unable to verify token");
     }
 };
 
-const authLocal = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
-    req.body.isAdmin = (/true/i).test(api.isLocalAdmin as any);
-    const token = req.headers.authorization ?? '';
+const authLocal = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    req.body.isAdmin = api.isLocalAdmin;
+    const token = req.headers.authorization;
     if (!token) {
         return responseHandler.unauthorizedErrorHandler(res, "0", "No token received.");
     }
-    if (adminRoutes.includes(req.path) && !req.body.isAdmin) {
-        return responseHandler.unauthorizedErrorHandler(res, "0", "You do not have access");
-    }
+    
     next();
 };
 
-export { auth, authLocal };
+const verifyAdminRoutes = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    if (adminRoutes.includes(req.path)) {
+        try {
+            const userInfoUri = audUrl[0];
+            
+            await axios.get(userInfoUri, {
+                headers: { "Authorization": req.headers.authorization || "" }
+            });
+
+            
+                next();
+            
+        } catch (error) {
+            console.error(`[${new Date().toISOString()}] Admin verification or Token error:`, error);
+            return responseHandler.unauthorizedErrorHandler(res, "0", "Unable to verify token or admin status");
+        }
+    } else {
+        req.body.isAdmin = false;
+        next();
+    }
+};
+
+export { auth, authLocal, verifyAdminRoutes };
