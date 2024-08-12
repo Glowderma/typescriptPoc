@@ -1,0 +1,26 @@
+# to run file install docker and type in 
+# docker compose -f services.yml up -d --build
+# docker exec -it pg_db /bin/bash
+
+version: "3"
+
+name: services
+services:
+  pg_db:
+    container_name: pg_db
+    image: postgres:16.1
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - pg_data:/var/lib/postgresql/data/
+    ports:
+      - "5432:5432"
+    networks:
+      - morpheus
+
+volumes:
+  pg_data:
+networks:
+  morpheus:
+
